@@ -34,7 +34,7 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: UUID) {
+  remove(@Param('id') id: UUID): Promise<void>{
     return this.positionsService.remove(id);
   }
 }

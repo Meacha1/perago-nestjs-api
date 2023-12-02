@@ -52,7 +52,12 @@ export class PositionsService {
     return this.entityManager.save(Position, updatedPosition );
   }
 
-  remove(id: UUID) {
-    return `This action removes a #${id} position`;
+  async remove(id: UUID): Promise<void> {
+    const deletedPosition = await  this.entityManager.delete(Position, {id: id});
+    if(!deletedPosition){
+      throw new NotFoundException('Position not found');
+    } else {
+      console.log('Position deleted')
+    }
   }
 }
