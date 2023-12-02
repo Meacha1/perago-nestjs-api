@@ -4,7 +4,6 @@ import { UpdatePositionDto } from './dto/update-position.dto';
 import { EntityManager } from 'typeorm';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { Position } from './entities/position.entity';
-import { promises } from 'dns';
 import { UUID } from 'crypto';
 
 @Injectable()
@@ -14,15 +13,11 @@ export class PositionsService {
     private readonly entityManager: EntityManager
     ) {}
   
-  async create(createPositionDto: CreatePositionDto): Promise<Position> {
-    const newPosition = new Position();
-    newPosition.name = createPositionDto.name;
-    newPosition.description = createPositionDto.description;
-    newPosition.parentId = createPositionDto.parentId;
-    this.entityManager.save(newPosition);
-
-    return newPosition;
-  }
+    async create(createPositionDto: CreatePositionDto): Promise<Position> {
+      let newPosition = new Position();
+      newPosition = { ...newPosition, ...createPositionDto }
+      return newPosition;
+    }
 
   async findAll(): Promise<Position[]> {
     const result =  await this.entityManager.find(Position)
