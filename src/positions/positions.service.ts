@@ -30,7 +30,7 @@ export class PositionsService {
   }
 
   async findMyChildrens(id: UUID): Promise<Position[]> {
-    const allChildrens = []
+    const allChildrens = [];
     const findChildrenRecursive = async (id: UUID) => {
       const result = await this.entityManager.find(Position, {where: {parentId: id}})
         if(result.length > 0){
