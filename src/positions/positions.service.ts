@@ -37,8 +37,9 @@ export class PositionsService {
         }
       }
     };
-    await findChildrenRecursive(id);
-    return allChildrens;
+    return await findChildrenRecursive(id).then(() => {
+      return allChildrens;
+    });
   }
 
   async update(id: UUID, updatePositionDto: UpdatePositionDto): Promise<Position> {
