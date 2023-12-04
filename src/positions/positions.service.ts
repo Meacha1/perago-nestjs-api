@@ -14,34 +14,29 @@ export class PositionsService {
   ) {}
 
   async create(createPositionDto: CreatePositionDto): Promise<void> {
+    const name = createPositionDto.name;
+    const isExist = await this.positionRepository.findOne({where: {name: name}});
+    if (isExist) {
+      throw new NotFoundException('Position already exist');
+    }
     await this.positionRepository.insert(createPositionDto);
   }
 
   async findAll(): Promise<Position[]> {
-    return this.positionRepository.find();
+    const allPositions: Position[] = [];
+    const root = await this.positionRepository.findOne({where: {parentId: null}});
+    allPositions.unshift(root);
+    await this.findChildrenRecursive(root.id, allPositions);
+    return allPositions;
   }
 
   async findOne(id: UUID): Promise<Position> {
-    return this.positionRepository.findOne({where: {id: id}});
+    return await this.positionRepository.findOne({where: {id: id}});
   }
 
   async findMyChildrens(id: UUID): Promise<Position[]> {
     const allChildrens: Position[] = [];
-  
-    const findChildrenRecursive = async (parentId: UUID) => {
-      const result = await this.positionRepository.find({ where: { parentId } });
-  
-      if (result.length > 0) {
-        allChildrens.push(...result);
-  
-        for (const child of result) {
-          await findChildrenRecursive(child.id);
-        }
-      }
-    };
-  
-    await findChildrenRecursive(id);
-  
+    await this.findChildrenRecursive(id, allChildrens);
     return allChildrens;
   }
 
@@ -58,9 +53,25 @@ export class PositionsService {
   }
 
   async remove(id: UUID): Promise<void> {
+    const isParent = await this.positionRepository.findOne({where: {parentId: id}});
+    if (isParent) {
+      throw new NotFoundException('Position is parent');
+    }
     const deletedPosition = await this.positionRepository.delete(id);
     if (deletedPosition.affected === 0) {
       throw new NotFoundException('Position not found');
+    }
+  }
+
+  private async findChildrenRecursive(parentId: UUID, allChildrens: Position[]): Promise<void> {
+    const result = await this.positionRepository.find({ where: { parentId } });
+
+    if (result.length > 0) {
+      allChildrens.push(...result);
+
+      for (const child of result) {
+        await this.findChildrenRecursive(child.id, allChildrens);
+      }
     }
   }
 }

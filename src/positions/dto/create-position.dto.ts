@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, ValidateIf } from 'class-validator';
 
 export class CreatePositionDto {
     @IsNotEmpty()
@@ -10,6 +10,6 @@ export class CreatePositionDto {
     description: string;
 
     @IsUUID()
-    @IsOptional()
-    parentId: string;
+    @ValidateIf((obj, value) => obj.name !== 'CEO')
+    parentId?: string;
 }
