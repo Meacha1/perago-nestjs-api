@@ -30,10 +30,18 @@ export class PositionsService {
   }
 
   async findMyChildrens(id: UUID): Promise<Position[]> {
-    const result = await this.entityManager.find(Position, {where: {parentId: id}})
-    return result;
+    const allChildrens = []
+    const findChildrenRecursive = async (id: UUID) => {
+      const result = await this.entityManager.find(Position, {where: {parentId: id}})
+        if(result.length > 0){
+          allChildrens.push(...result)
+          for(let i = 0; i < result.length; i++){
+            await findChildrenRecursive(result[i].id)
+          }
+        }
+    }
+    return findChildrenRecursive(id).then(() => allChildrens);
   }
-
 
   async update(id: UUID, updatePositionDto: UpdatePositionDto): Promise<Position> {
     let updatedPosition  = await this.findOne(id);
