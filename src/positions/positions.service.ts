@@ -1,66 +1,64 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
-import { EntityManager } from 'typeorm';
-import { InjectEntityManager } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Position } from './entities/position.entity';
 import { UUID } from 'crypto';
 
 @Injectable()
 export class PositionsService {
   constructor(
-    @InjectEntityManager()
-    private readonly entityManager: EntityManager
-    ) {}
-  
-    async create(createPositionDto: CreatePositionDto): Promise<Position> {
-      let newPosition = new Position();
-      newPosition = { ...newPosition, ...createPositionDto }
-      return newPosition;
-    }
+    @InjectRepository(Position)
+    private readonly positionRepository: Repository<Position>,
+  ) {}
+
+  async create(createPositionDto: CreatePositionDto): Promise<Position> {
+    const newPosition = this.positionRepository.create(createPositionDto);
+    return this.positionRepository.save(newPosition);
+  }
 
   async findAll(): Promise<Position[]> {
-    const result =  await this.entityManager.find(Position)
-    return result;
+    return this.positionRepository.find();
   }
 
   async findOne(id: UUID): Promise<Position> {
-    const result = await this.entityManager.findOne(Position, {where: {id: id}});
-    return result;
+    return this.positionRepository.findOne({where: {id: id}});
   }
 
   async findMyChildrens(id: UUID): Promise<Position[]> {
     const allChildrens = [];
     const findChildrenRecursive = async (id: UUID) => {
-      const result = await this.entityManager.find(Position, {where: {parentId: id}})
-        if(result.length > 0){
-          allChildrens.push(...result)
-          for(let i = 0; i < result.length; i++){
-            await findChildrenRecursive(result[i].id)
-          }
+      const result = await this.positionRepository.find({ where: { parentId: id } });
+      if (result.length > 0) {
+        allChildrens.push(...result);
+        for (let i = 0; i < result.length; i++) {
+          await findChildrenRecursive(result[i].id);
         }
-    }
-    return findChildrenRecursive(id).then(() => allChildrens);
+      }
+    };
+    await findChildrenRecursive(id);
+    return allChildrens;
   }
 
   async update(id: UUID, updatePositionDto: UpdatePositionDto): Promise<Position> {
-    let updatedPosition  = await this.findOne(id);
+    let updatedPosition = await this.findOne(id);
 
-    if(!updatedPosition){
+    if (!updatedPosition) {
       throw new NotFoundException('Position not found');
     }
 
-    updatedPosition  = { ...updatedPosition, ...updatePositionDto };
+    updatedPosition = { ...updatedPosition, ...updatePositionDto };
 
-    return this.entityManager.save(Position, updatedPosition );
+    return this.positionRepository.save(updatedPosition);
   }
 
   async remove(id: UUID): Promise<void> {
-    const deletedPosition = await  this.entityManager.delete(Position, {id: id});
-    if(!deletedPosition){
+    const deletedPosition = await this.positionRepository.delete(id);
+    if (deletedPosition.affected === 0) {
       throw new NotFoundException('Position not found');
     } else {
-      console.log('Position deleted')
+      console.log('Position deleted');
     }
   }
 }
