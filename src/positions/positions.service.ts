@@ -13,9 +13,8 @@ export class PositionsService {
     private readonly positionRepository: Repository<Position>,
   ) {}
 
-  async create(createPositionDto: CreatePositionDto): Promise<Position> {
-    const newPosition = this.positionRepository.create(createPositionDto);
-    return this.positionRepository.save(newPosition);
+  async create(createPositionDto: CreatePositionDto): Promise<void> {
+    await this.positionRepository.insert(createPositionDto);
   }
 
   async findAll(): Promise<Position[]> {
@@ -27,19 +26,23 @@ export class PositionsService {
   }
 
   async findMyChildrens(id: UUID): Promise<Position[]> {
-    const allChildrens = [];
-    const findChildrenRecursive = async (id: UUID) => {
-      const result = await this.positionRepository.find({ where: { parentId: id } });
+    const allChildrens: Position[] = [];
+  
+    const findChildrenRecursive = async (parentId: UUID) => {
+      const result = await this.positionRepository.find({ where: { parentId } });
+  
       if (result.length > 0) {
         allChildrens.push(...result);
-        for (let i = 0; i < result.length; i++) {
-          await findChildrenRecursive(result[i].id);
+  
+        for (const child of result) {
+          await findChildrenRecursive(child.id);
         }
       }
     };
-    return await findChildrenRecursive(id).then(() => {
-      return allChildrens;
-    });
+  
+    await findChildrenRecursive(id);
+  
+    return allChildrens;
   }
 
   async update(id: UUID, updatePositionDto: UpdatePositionDto): Promise<Position> {
@@ -58,8 +61,6 @@ export class PositionsService {
     const deletedPosition = await this.positionRepository.delete(id);
     if (deletedPosition.affected === 0) {
       throw new NotFoundException('Position not found');
-    } else {
-      console.log('Position deleted');
     }
   }
 }
